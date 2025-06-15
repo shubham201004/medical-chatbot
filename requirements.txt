@@ -1,0 +1,13 @@
+wheel
+ctransformers==0.2.5
+sentence-transformers
+pinecone
+langchain
+flask
+pymupdf
+transformers 
+langchain-pinecone
+langchain-community
+python-dotenv
+
+-e .

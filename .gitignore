@@ -1,0 +1,8 @@
+.venv/ 
+.env 
+model/
+data/
+trial.ipynb
+__pycache__/
+*.pyc
+src/

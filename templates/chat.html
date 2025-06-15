@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Chatbot</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        /* Your existing styles */
+        body {
+            background-color: #f5f5f5;
+            font-family: 'Arial', sans-serif;
+        }
+        /* Add this new style */
+        .typing-indicator {
+            display: inline-block;
+            padding: 10px;
+            background-color: #e3f2fd;
+            border-radius: 20px;
+            margin-bottom: 10px;
+        }
+        .typing-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #666;
+            margin: 0 2px;
+            animation: typingAnimation 1.4s infinite ease-in-out;
+        }
+        .typing-dot:nth-child(1) {
+            animation-delay: 0s;
+        }
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        @keyframes typingAnimation {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-5px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-content page-container" id="page-content">
+        <div class="padding">
+            <div class="row container d-flex justify-content-center">
+                <div class="col-md-8">
+                    <div class="card card-bordered">
+                        <div class="card-header">
+                            <h4 class="card-title"><strong>Medical Chatbot</strong></h4>
+                        </div>
+
+                        <div class="ps-container ps-theme-default ps-active-y" id="chat-content">
+                            <!-- Chat messages will appear here -->
+                        </div>
+
+                        <div class="publisher bt-1 border-light">
+                            <img class="avatar avatar-xs" src="https://img.icons8.com/color/36/000000/user.png" alt="...">
+                            <input class="publisher-input" id="user-input" type="text" placeholder="Type your medical question...">
+                            <button class="publisher-btn text-info" id="send-btn">
+                                <i class="fa fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Function to add a message to the chat
+            function addMessage(message, isUser, isError = false) {
+                const chatContent = $('#chat-content');
+                const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                if (isError) {
+                    chatContent.append(`
+                        <div class="media media-chat">
+                            <div class="media-body error-message">
+                                <p>${message}</p>
+                                <p class="meta"><time>${time}</time></p>
+                            </div>
+                        </div>
+                    `);
+                } else if (isUser) {
+                    chatContent.append(`
+                        <div class="media media-chat media-chat-reverse">
+                            <div class="media-body">
+                                <p>${message}</p>
+                                <p class="meta"><time>${time}</time></p>
+                            </div>
+                        </div>
+                    `);
+                } else {
+                    chatContent.append(`
+                        <div class="media media-chat">
+                            <img class="avatar" src="https://img.icons8.com/color/36/000000/medical-doctor.png" alt="...">
+                            <div class="media-body">
+                                <p>${message}</p>
+                                <p class="meta"><time>${time}</time></p>
+                            </div>
+                        </div>
+                    `);
+                }
+                
+                // Scroll to bottom
+                chatContent.scrollTop(chatContent[0].scrollHeight);
+            }
+
+            // Function to show typing indicator
+            function showTypingIndicator() {
+                const chatContent = $('#chat-content');
+                chatContent.append(`
+                    <div class="media media-chat" id="typing-indicator">
+                        <img class="avatar" src="https://img.icons8.com/color/36/000000/medical-doctor.png" alt="...">
+                        <div class="media-body">
+                            <div class="typing-indicator">
+                                <span class="typing-dot"></span>
+                                <span class="typing-dot"></span>
+                                <span class="typing-dot"></span>
+                            </div>
+                        </div>
+                    </div>
+                `);
+                chatContent.scrollTop(chatContent[0].scrollHeight);
+            }
+
+            // Function to hide typing indicator
+            function hideTypingIndicator() {
+                $('#typing-indicator').remove();
+            }
+
+            // Handle send button click
+            $('#send-btn').click(function() {
+                sendMessage();
+            });
+
+            // Handle Enter key press
+            $('#user-input').keypress(function(e) {
+                if (e.which === 13) {
+                    sendMessage();
+                }
+            });
+
+            function sendMessage() {
+                const userInput = $('#user-input').val().trim();
+                if (userInput) {
+                    // Add user message to chat
+                    addMessage(userInput, true);
+                    $('#user-input').val('');
+                    
+                    // Show typing indicator
+                    showTypingIndicator();
+                    
+                    // Send message to server and get response
+                    $.ajax({
+                        url: '/get',
+                        type: 'POST',
+                        contentType: 'application/x-www-form-urlencoded; charset=UTF-8',
+                        data: { msg: userInput },
+                        dataType: 'json',
+                        success: function(response) {
+                            hideTypingIndicator();
+                            if (response.status === "success") {
+                                addMessage(response.message, false);
+                            } else {
+                                addMessage("Error: " + response.message, false, true);
+                            }
+                        },
+                        error: function(xhr) {
+                            hideTypingIndicator();
+                            let errorMsg = "Failed to process response";
+                            if (xhr.responseJSON && xhr.responseJSON.message) {
+                                errorMsg = xhr.responseJSON.message;
+                            } else if (xhr.responseText) {
+                                errorMsg = xhr.responseText;
+                            }
+                            addMessage("Error: " + errorMsg, false, true);
+                        }
+                    });
+                }
+            }
+        });
+    </script>
+</body>
+</html>
